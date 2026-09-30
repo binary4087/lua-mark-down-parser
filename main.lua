@@ -17,7 +17,12 @@ Here is some bold text **Hello!** and some italics *World*.
 - Item two with **bold**
 - Item three
 
-Final paragraph after a list.
+Ordered list example:
+1. First step
+2. Second step with `inline code`
+3. Third step
+
+Final paragraph after lists.
 ]]
 
 print("--- Markdown Input ---")

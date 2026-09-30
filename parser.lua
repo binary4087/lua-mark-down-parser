@@ -1,6 +1,8 @@
 local Parser = {}
 
 local inline_rules = {
+  -- Inline Code
+  { pattern = "%%`(.-)%%`", replacement = "<code>%1</code>" },
   -- Bold
   { pattern = "%%**(.-)%%**", replacement = "<strong>%1</strong>" },
   -- Italic
@@ -17,11 +19,13 @@ function Parser.parse(text)
 
   local output = {}
   local in_list = false
+  local list_type = nil -- "ul" or "ol"
 
   for _, line in ipairs(lines) do
     local processed = line
     local is_header = false
     local is_list_item = false
+    local current_list_type = nil
 
     -- Header detection
     for i = 1, 3 do
@@ -33,10 +37,17 @@ function Parser.parse(text)
       end
     end
 
-    -- List item detection (starts with - or *)
-    if not is_header and processed:match("^[%-%*]%s+(.+)$") then
-      processed = processed:gsub("^[%-%*]%s+(.+)$", "%1")
-      is_list_item = true
+    -- List item detection
+    if not is_header then
+      if processed:match("^[%-%*]%s+(.+)$") then
+        processed = processed:gsub("^[%-%*]%s+(.+)$", "%1")
+        is_list_item = true
+        current_list_type = "ul"
+      elseif processed:match("^%d+%.%s+(.+)$") then
+        processed = processed:gsub("^%d+%.%s+(.+)$", "%1")
+        is_list_item = true
+        current_list_type = "ol"
+      end
     end
 
     -- Apply inline rules
@@ -46,19 +57,24 @@ function Parser.parse(text)
 
     -- List block management
     if is_list_item then
-      if not in_list then
-        table.insert(output, "<ul>")
+      if not in_list or list_type ~= current_list_type then
+        if in_list then
+          table.insert(output, "</" .. list_type .. ">")
+        end
+        table.insert(output, "<" .. current_list_type .. ">")
         in_list = true
+        list_type = current_list_type
       end
       table.insert(output, "  <li>" .. processed .. "</li>")
     else
       if in_list then
-        table.insert(output, "</ul>")
+        table.insert(output, "</" .. list_type .. ">")
         in_list = false
+        list_type = nil
       end
 
       if processed == "" then
-        -- Ignore empty lines inside or between blocks
+        -- Ignore empty lines
       elseif is_header then
         table.insert(output, processed)
       else
@@ -68,7 +84,7 @@ function Parser.parse(text)
   end
 
   if in_list then
-    table.insert(output, "</ul>")
+    table.insert(output, "</" .. list_type .. ">")
   end
 
   return table.concat(output, "\n")
