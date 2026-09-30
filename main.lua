@@ -22,7 +22,10 @@ Ordered list example:
 2. Second step with `inline code`
 3. Third step
 
-Final paragraph after lists.
+> This is a blockquote
+> It can span multiple lines
+
+Final paragraph after lists and quotes.
 ]]
 
 print("--- Markdown Input ---")

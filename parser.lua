@@ -20,12 +20,20 @@ function Parser.parse(text)
   local output = {}
   local in_list = false
   local list_type = nil -- "ul" or "ol"
+  local in_blockquote = false
 
   for _, line in ipairs(lines) do
     local processed = line
     local is_header = false
     local is_list_item = false
     local current_list_type = nil
+    local is_blockquote_item = false
+
+    -- Blockquote detection
+    if processed:match("^%s*>%s*(.+)$") then
+      processed = processed:gsub("^%s*>%s*(.+)$", "%1")
+      is_blockquote_item = true
+    end
 
     -- Header detection
     for i = 1, 3 do
@@ -65,7 +73,7 @@ function Parser.parse(text)
         in_list = true
         list_type = current_list_type
       end
-      table.insert(output, "  <li>" .. processed .. "</li>")
+      processed = "  <li>" .. processed .. "</li>"
     else
       if in_list then
         table.insert(output, "</" .. list_type .. ">")
@@ -75,16 +83,39 @@ function Parser.parse(text)
 
       if processed == "" then
         -- Ignore empty lines
+        processed = nil
       elseif is_header then
-        table.insert(output, processed)
+        -- processed is already wrapped in h tags
       else
-        table.insert(output, "<p>" .. processed .. "</p>")
+        processed = "<p>" .. processed .. "</p>"
+      end
+    end
+
+    -- Blockquote block management
+    if is_blockquote_item then
+      if not in_blockquote then
+        table.insert(output, "<blockquote>")
+        in_blockquote = true
+      end
+      if processed then
+        table.insert(output, processed)
+      end
+    else
+      if in_blockquote then
+        table.insert(output, "</blockquote>")
+        in_blockquote = false
+      end
+      if processed then
+        table.insert(output, processed)
       end
     end
   end
 
   if in_list then
     table.insert(output, "</" .. list_type .. ">")
+  end
+  if in_blockquote then
+    table.insert(output, "</blockquote>")
   end
 
   return table.concat(output, "\n")
