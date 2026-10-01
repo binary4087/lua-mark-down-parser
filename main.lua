@@ -5,6 +5,8 @@ local sample_markdown = [[
 
 This is a **lightweight** parser written in *Lua*.
 
+---
+
 ## Features
 - Fast parsing
 - Simple patterns
@@ -21,6 +23,8 @@ Ordered list example:
 1. First step
 2. Second step with `inline code`
 3. Third step
+
+---
 
 > This is a blockquote
 > It can span multiple lines

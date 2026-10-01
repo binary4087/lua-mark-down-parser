@@ -28,25 +28,33 @@ function Parser.parse(text)
     local is_list_item = false
     local current_list_type = nil
     local is_blockquote_item = false
+    local is_hr = false
+
+    -- Horizontal Rule detection
+    if processed:match("^%s*([-*_])%s*$%s*") and processed:match("^%s*([-*_])%s*([-*_])%s*([-*_])%s*$") then
+      is_hr = true
+    end
 
     -- Blockquote detection
-    if processed:match("^%s*>%s*(.+)$") then
+    if not is_hr and processed:match("^%s*>%s*(.+)$") then
       processed = processed:gsub("^%s*>%s*(.+)$", "%1")
       is_blockquote_item = true
     end
 
     -- Header detection
-    for i = 1, 3 do
-      local header_pat = "^#" .. string.rep("#", i-1) .. "%%s+(.+)$"
-      if processed:match(header_pat) then
-        processed = processed:gsub(header_pat, "<h" .. i .. ">%1</h" .. i .. ">")
-        is_header = true
-        break
+    if not is_hr and not is_blockquote_item then
+      for i = 1, 3 do
+        local header_pat = "^#" .. string.rep("#", i-1) .. "%%s+(.+)$"
+        if processed:match(header_pat) then
+          processed = processed:gsub(header_pat, "<h" .. i .. ">%1</h" .. i .. ">")
+          is_header = true
+          break
+        end
       end
     end
 
     -- List item detection
-    if not is_header then
+    if not is_header and not is_hr and not is_blockquote_item then
       if processed:match("^[%-%*]%s+(.+)$") then
         processed = processed:gsub("^[%-%*]%s+(.+)$", "%1")
         is_list_item = true
@@ -59,8 +67,10 @@ function Parser.parse(text)
     end
 
     -- Apply inline rules
-    for _, rule in ipairs(inline_rules) do
-      processed = processed:gsub(rule.pattern, rule.replacement)
+    if not is_hr then
+      for _, rule in ipairs(inline_rules) do
+        processed = processed:gsub(rule.pattern, rule.replacement)
+      end
     end
 
     -- List block management
@@ -81,12 +91,13 @@ function Parser.parse(text)
         list_type = nil
       end
 
-      if processed == "" then
-        -- Ignore empty lines
+      if is_hr then
+        processed = "<hr />"
+      elseif processed == "" then
         processed = nil
       elseif is_header then
         -- processed is already wrapped in h tags
-      else
+      elseif not is_blockquote_item then
         processed = "<p>" .. processed .. "</p>"
       end
     end
